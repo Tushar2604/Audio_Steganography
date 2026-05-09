@@ -1,0 +1,36 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# Environment
+.env
+.env.local
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Database
+*.db
+
+# Generated uploads
+uploads/
+outputs/
+
+# Audio
+*.wav
+*.mp3
+*.flac
+!samples/*.wav
+
+# macOS
+.DS_Store
+__MACOSX/
