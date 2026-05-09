@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getTokenForRequest } from './authTokenProvider'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL:import.meta.env.VITE_API_UR,
   timeout: 60000,
 })
 
