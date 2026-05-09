@@ -23,6 +23,9 @@ def send_audio_file(
     Send an encoded audio file as an email attachment.
     Returns True on success, raises on failure.
     """
+    print("SMTP_USER =", SMTP_USER)
+    print("SMTP_PASSWORD exists =", bool(SMTP_PASSWORD))
+    
     if not SMTP_USER or not SMTP_PASSWORD:
         raise ValueError(
             "SMTP credentials not configured. "
