@@ -5,13 +5,6 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_USER)
-
-
 def send_audio_file(
     recipient_email: str,
     sender_name: str,
@@ -19,21 +12,23 @@ def send_audio_file(
     filename: str,
     message_preview: str = "",
 ) -> bool:
-    """
-    Send an encoded audio file as an email attachment.
-    Returns True on success, raises on failure.
-    """
-    print("SMTP_USER =", SMTP_USER)
-    print("SMTP_PASSWORD exists =", bool(SMTP_PASSWORD))
-    
-    if not SMTP_USER or not SMTP_PASSWORD:
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_password = os.getenv("SMTP_PASSWORD", "")
+    from_email = os.getenv("FROM_EMAIL", smtp_user)
+
+    print("SMTP_USER =", smtp_user)
+    print("SMTP_PASSWORD exists =", bool(smtp_password))
+
+    if not smtp_user or not smtp_password:
         raise ValueError(
             "SMTP credentials not configured. "
             "Set SMTP_USER and SMTP_PASSWORD in your .env file."
         )
 
     msg = MIMEMultipart()
-    msg["From"] = f"Audio Stego <{FROM_EMAIL}>"
+    msg["From"] = f"Audio Stego <{from_email}>"
     msg["To"] = recipient_email
     msg["Subject"] = f"🔐 {sender_name} sent you a secret audio message"
 
@@ -59,9 +54,9 @@ Audio Stego Team
     part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
     msg.attach(part)
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
         server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(FROM_EMAIL, recipient_email, msg.as_string())
+        server.login(smtp_user, smtp_password)
+        server.sendmail(from_email, recipient_email, msg.as_string())
 
     return True
