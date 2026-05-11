@@ -75,5 +75,7 @@ def get_current_user_id(
         return user_id
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    except Exception as e:
+        import logging
+        logging.warning(f"JWT validation error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Token error: {type(e).__name__}: {e}")
