@@ -1,8 +1,6 @@
 import os
 import base64
-import urllib.request
-import urllib.error
-import json
+import resend
 
 
 def send_audio_file(
@@ -20,6 +18,8 @@ def send_audio_file(
             "Resend API key not configured. Set RESEND_API_KEY in your environment."
         )
 
+    resend.api_key = api_key
+
     with open(file_path, "rb") as f:
         file_content = base64.b64encode(f.read()).decode("utf-8")
 
@@ -34,7 +34,7 @@ To decode the hidden message, upload the attached WAV file at our platform.
 Stay curious,
 Audio Stego Team""".strip()
 
-    payload = json.dumps({
+    params: resend.Emails.SendParams = {
         "from": from_email,
         "to": [recipient_email],
         "subject": f"{sender_name} sent you a secret audio message",
@@ -42,27 +42,11 @@ Audio Stego Team""".strip()
         "attachments": [
             {
                 "filename": filename,
-                "content": file_content,
+                "content": list(base64.b64decode(file_content)),
             }
         ],
-    }).encode("utf-8")
+    }
 
-    req = urllib.request.Request(
-        "https://api.resend.com/emails",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=30) as response:
-            result = json.loads(response.read().decode("utf-8"))
-            print("Email sent, id:", result.get("id"))
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        raise RuntimeError(f"Resend API error {e.code}: {error_body}")
-
+    email = resend.Emails.send(params)
+    print("Email sent, id:", email.get("id"))
     return True
