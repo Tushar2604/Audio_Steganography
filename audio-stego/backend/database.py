@@ -4,8 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 
-# override=True ensures .env values override any system environment variables
-load_dotenv(override=True)
+load_dotenv()
 
 # Always use SQLite for this project — ignore any system DATABASE_URL
 DATABASE_URL = "sqlite:///./audio_stego.db"
