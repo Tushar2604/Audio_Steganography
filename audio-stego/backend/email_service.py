@@ -1,9 +1,9 @@
-import smtplib
 import os
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
+import base64
+import urllib.request
+import urllib.error
+import json
+
 
 def send_audio_file(
     recipient_email: str,
@@ -12,28 +12,18 @@ def send_audio_file(
     filename: str,
     message_preview: str = "",
 ) -> bool:
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_password = os.getenv("SMTP_PASSWORD", "")
-    from_email = os.getenv("FROM_EMAIL", smtp_user)
+    api_key = os.getenv("RESEND_API_KEY", "")
+    from_email = os.getenv("FROM_EMAIL", "Audio Stego <onboarding@resend.dev>")
 
-    print("SMTP_USER =", smtp_user)
-    print("SMTP_PASSWORD exists =", bool(smtp_password))
-
-    if not smtp_user or not smtp_password:
+    if not api_key:
         raise ValueError(
-            "SMTP credentials not configured. "
-            "Set SMTP_USER and SMTP_PASSWORD in your .env file."
+            "Resend API key not configured. Set RESEND_API_KEY in your environment."
         )
 
-    msg = MIMEMultipart()
-    msg["From"] = f"Audio Stego <{from_email}>"
-    msg["To"] = recipient_email
-    msg["Subject"] = f"🔐 {sender_name} sent you a secret audio message"
+    with open(file_path, "rb") as f:
+        file_content = base64.b64encode(f.read()).decode("utf-8")
 
-    body = f"""
-Hello,
+    body = f"""Hello,
 
 {sender_name} has sent you a secret audio message using Audio Steganography!
 
@@ -42,21 +32,37 @@ Hello,
 To decode the hidden message, upload the attached WAV file at our platform.
 
 Stay curious,
-Audio Stego Team
-    """.strip()
+Audio Stego Team""".strip()
 
-    msg.attach(MIMEText(body, "plain"))
+    payload = json.dumps({
+        "from": from_email,
+        "to": [recipient_email],
+        "subject": f"{sender_name} sent you a secret audio message",
+        "text": body,
+        "attachments": [
+            {
+                "filename": filename,
+                "content": file_content,
+            }
+        ],
+    }).encode("utf-8")
 
-    with open(file_path, "rb") as f:
-        part = MIMEBase("application", "octet-stream")
-        part.set_payload(f.read())
-    encoders.encode_base64(part)
-    part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
-    msg.attach(part)
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_password)
-        server.sendmail(from_email, recipient_email, msg.as_string())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as response:
+            result = json.loads(response.read().decode("utf-8"))
+            print("Email sent, id:", result.get("id"))
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        raise RuntimeError(f"Resend API error {e.code}: {error_body}")
 
     return True
